@@ -1,5 +1,7 @@
+library(ggplot2)
+
 ################################################################################
-###  Simulation 1: Markov Simulation  ##########################################
+###  Section 1: Markov Simulation  #############################################
 ################################################################################
 
 # n reds and 100 blues. 
@@ -36,17 +38,26 @@ st_blue <- s0_blue
 
 # Transitions ------------------------------------------------------------------
 
-pr_wealthy <- matrix(0,n+1,2)
-pr_wealthy[1,] <- c(red_w0_prob,blue_w0_prob)
+pr_wealthy <- matrix(0,n+1,3)
+pr_wealthy[1,] <- c(0,red_w_prob,blue_w_prob)
 
 for (t in 1:n) {
 st_red <- P_red %*% st_red 
 st_blue <- P_blue %*% st_blue
 
-pr_wealthy[t+1,1] <- st_red[1]
-pr_wealthy[t+1,2] <- st_blue[1]
+pr_wealthy[t+1,1] <- t
+pr_wealthy[t+1,2] <- st_red[1]
+pr_wealthy[t+1,3] <- st_blue[1]
 }
 
-pr_wealthy
+pr_wealthy <- as.data.frame(pr_wealthy)
+colnames(pr_wealthy) <- c("Generation", "wealthy_red_rate","wealthy_blue_rate")
 
-#line graph over time showing how long until equal distributions for red and blue
+
+################################################################################
+###  Section 2: visualization  #################################################
+################################################################################
+
+ggplot(pr_wealthy, aes(x = Generation)) +
+  geom_line(aes(y = wealthy_red_rate), color = "red") +
+  geom_line(aes(y = wealthy_blue_rate), color = "blue")
