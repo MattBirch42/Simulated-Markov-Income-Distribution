@@ -1,5 +1,6 @@
 library(ggplot2)
 
+
 ################################################################################
 ###  Section 1: Markov Simulation  #############################################
 ################################################################################
@@ -16,11 +17,11 @@ n <- 10              # number of time periods
 red_w_prob <- .9     # prob of red being wealthy in initial state. 
 blue_w_prob <- .1    # prob of blue being wealthy in initial state. 
 
-p_stay_r0 <- .7      # prob of red staying poor if poor
+p_stay_r0 <- .6      # prob of red staying poor if poor
 p_stay_r1 <- .9      # prob of red staying rich if rich
 
-p_stay_b0 <- .7      # prob of blue staying poor if poor -- default setting is equal probs
-p_stay_b1 <- .9      # prob of blue staying rich if rich -- default setting is equal probs
+p_stay_b0 <- .8      # prob of blue staying poor if poor -- default setting is equal probs
+p_stay_b1 <- .7      # prob of blue staying rich if rich -- default setting is equal probs
 
 
 # Markov stochastic transition setup -------------------------------------------
@@ -55,9 +56,79 @@ colnames(pr_wealthy) <- c("Generation", "wealthy_red_rate","wealthy_blue_rate")
 
 
 ################################################################################
-###  Section 2: visualization  #################################################
+###  Section 2: As a function and with visualization  ##########################
 ################################################################################
+# input vectors have 7 elements, the inputs from section 1
+# input_vector_fake <- c(n, red_w_prob, blue_w_prob, p_stay_r0, p_stay_r1, p_stay_b0, p_stay_b1)
+
+rb_markov = function(input) {
+  n <- input[1]
+  red_w_prob <- input[2]
+  blue_w_prob <- input[3]
+  p_stay_r0 <- input[4]
+  p_stay_r1 <- input[5]
+  p_stay_b0 <- input[6]
+  p_stay_b1 <- input[7]
+
+  s0_red <- matrix(c(red_w_prob,1-red_w_prob))
+  s0_blue <- matrix(c(blue_w_prob,1-blue_w_prob))
+
+  P_red <- matrix(c(p_stay_r1, 1-p_stay_r1,1-p_stay_r0,p_stay_r0),2,2)
+  P_blue <- matrix(c(p_stay_b1, 1-p_stay_b1,1-p_stay_b0,p_stay_b0),2,2)
+
+  st_red <- s0_red
+  st_blue <- s0_blue
+
+  pr_wealthy <- matrix(0,n+1,3)
+  pr_wealthy[1,] <- c(0,red_w_prob,blue_w_prob)
+
+  for (t in 1:n) {
+    st_red <- P_red %*% st_red 
+    st_blue <- P_blue %*% st_blue
+  
+    pr_wealthy[t+1,1] <- t
+    pr_wealthy[t+1,2] <- st_red[1]
+    pr_wealthy[t+1,3] <- st_blue[1]
+}
+
+  pr_wealthy <- as.data.frame(pr_wealthy)
+  colnames(pr_wealthy) <- c("Generation", "wealthy_red_rate","wealthy_blue_rate")
+
+  return(pr_wealthy)
+}
+
+
+
+# input_vector_fake <- c(n, red_w_prob, blue_w_prob, p_stay_r0, p_stay_r1, p_stay_b0, p_stay_b1)
+input_vector <- c(10,.9,.2,.4,.9,.7,.7)
+pr_wealthy <- rb_markov(input_vector)
 
 ggplot(pr_wealthy, aes(x = Generation)) +
   geom_line(aes(y = wealthy_red_rate), color = "red") +
-  geom_line(aes(y = wealthy_blue_rate), color = "blue")
+  geom_line(aes(y = wealthy_blue_rate), color = "blue") +
+  labs(title = "Wealth Inequality of Red and Blue",
+       y = "Percent of Color that are Wealthy")
+
+
+################################################################################
+###  Section 3: Grid  ##########################################################
+################################################################################
+
+red_pop <- numeric(1100)
+red_pop <- array(red_pop, dim = c(10,10,11))
+blue_pop = red_pop
+for (i in 1:length(blue_pop[1,1,])) {
+  wr <- round(100*pr_wealthy[i,2],0)
+  r10s <- (wr- wr%%10)/10
+  rs <- wr%%10
+  red_pop[,c(1:r10s),i] = 1
+  if (rs > 0) red_pop[c(1:rs),r10s + 1,i] = 1
+  
+  wb <- round(100*pr_wealthy[i,3],0)
+  b10s <- (wb- wb%%10)/10
+  bs <- wb%%10
+  blue_pop[,c(1:b10s),i] = 1
+  if (bs > 0) blue_pop[c(1:bs),b10s + 1,i] = 1
+  
+  print(paste0(wb," ", b10s," ", bs))
+}
