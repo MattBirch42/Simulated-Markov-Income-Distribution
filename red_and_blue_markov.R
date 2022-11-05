@@ -1,6 +1,7 @@
 library(ggplot2)
-
-
+library(gganimate)
+library(transformr)
+#library(gifski)
 ################################################################################
 ###  Section 1: Markov Simulation  #############################################
 ################################################################################
@@ -80,15 +81,15 @@ rb_markov = function(input) {
   st_blue <- s0_blue
 
   pr_wealthy <- matrix(0,n+1,3)
-  pr_wealthy[1,] <- c(0,red_w_prob,blue_w_prob)
+  pr_wealthy[1,] <- c(0,red_w_prob,blue_w_prob)*100
 
   for (t in 1:n) {
     st_red <- P_red %*% st_red 
     st_blue <- P_blue %*% st_blue
   
     pr_wealthy[t+1,1] <- t
-    pr_wealthy[t+1,2] <- st_red[1]
-    pr_wealthy[t+1,3] <- st_blue[1]
+    pr_wealthy[t+1,2] <- st_red[1]*100
+    pr_wealthy[t+1,3] <- st_blue[1]*100
 }
 
   pr_wealthy <- as.data.frame(pr_wealthy)
@@ -103,32 +104,25 @@ rb_markov = function(input) {
 input_vector <- c(10,.9,.2,.4,.9,.7,.7)
 pr_wealthy <- rb_markov(input_vector)
 
-ggplot(pr_wealthy, aes(x = Generation)) +
-  geom_line(aes(y = wealthy_red_rate), color = "red") +
-  geom_line(aes(y = wealthy_blue_rate), color = "blue") +
-  labs(title = "Wealth Inequality of Red and Blue",
-       y = "Percent of Color that are Wealthy")
+rb_plot <- ggplot(pr_wealthy, aes(x = Generation)) +
+             geom_line(aes(y = wealthy_red_rate), color = "red") +
+             geom_line(aes(y = wealthy_blue_rate), color = "blue") +
+             labs(title = "Wealth Inequality of Red and Blue",
+               y = "Percent of Color that are Wealthy") +
+             theme_light()
 
 
-################################################################################
-###  Section 3: Grid  ##########################################################
-################################################################################
+#this is not going anywhere. 
+# can I do one that shows the curves change as I change initial probabilities?
 
-red_pop <- numeric(1100)
-red_pop <- array(red_pop, dim = c(10,10,11))
-blue_pop = red_pop
-for (i in 1:length(blue_pop[1,1,])) {
-  wr <- round(100*pr_wealthy[i,2],0)
-  r10s <- (wr- wr%%10)/10
-  rs <- wr%%10
-  red_pop[,c(1:r10s),i] = 1
-  if (rs > 0) red_pop[c(1:rs),r10s + 1,i] = 1
-  
-  wb <- round(100*pr_wealthy[i,3],0)
-  b10s <- (wb- wb%%10)/10
-  bs <- wb%%10
-  blue_pop[,c(1:b10s),i] = 1
-  if (bs > 0) blue_pop[c(1:bs),b10s + 1,i] = 1
-  
-  print(paste0(wb," ", b10s," ", bs))
-}
+anim <- rb_plot + 
+  transition_states(Generation,
+                    transition_length = 2,
+                    state_length = 1)   
+
+rb_plot + transition_time(Generation) +
+  labs(title = "Generation: {Generation}")
+
+rb_plot + transition_states(Generation,transition_length = 2,
+                            state_length = 1) +
+  labs(title = "Generation: {Generation}")
